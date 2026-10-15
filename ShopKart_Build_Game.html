@@ -1,0 +1,446 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ShopKart Build Game</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anek+Malayalam:wght@400;500;600;700;800&display=swap">
+<style>
+html, body { margin: 0; }
+[hidden] { display: none !important; }
+img { max-width: 100%; }
+/* Layout: light single-theme page. Header with title + live score, then a board: visual panel (SDLC track or app phone) beside the question card. */
+:root {
+  color-scheme: light;
+  --brand: #0061B5;
+  --brand-soft: #DCEAF9;
+  --ink: #17212E;
+  --muted: #5A6878;
+  --page: #F4F8FD;
+  --card: #FFFFFF;
+  --tint: #EAF2FB;
+  --line: #D3E2F3;
+  --good: #0E8A5F;
+  --good-bg: #E3F5EC;
+  --bad: #CF3F35;
+  --bad-bg: #FCE9E7;
+  --amber: #E08E00;
+  --amber-bg: #FFF3DD;
+  --phone: #17212E;
+  --display: "Anek Malayalam", "Segoe UI", system-ui, sans-serif;
+  --body: "Anek Malayalam", "Segoe UI", system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+body { background: var(--page); color: var(--ink); font-family: var(--body); font-size: 17px; line-height: 1.45; }
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+button:focus-visible, input:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
+
+.wrap { max-width: 1120px; margin: 0 auto; padding-block: 24px 40px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 20px; }
+
+/* Header */
+.top { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.eyebrow { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--brand); font-weight: 700; }
+.top h1 { font-family: var(--display); font-size: 32px; line-height: 1.05; margin: 2px 0 0; font-weight: 800; }
+.stats { display: flex; gap: 10px; flex-wrap: wrap; }
+.stat { background: var(--card); border: 1.5px solid var(--line); border-radius: 14px; padding: 6px 14px; min-width: 96px; }
+.stat small { display: block; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.stat b { font-family: var(--display); font-size: 26px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.stat.player b { font-size: 20px; line-height: 1.4; max-width: 180px; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stat.streak b { color: var(--amber); }
+
+/* Progress + timer */
+.progress { display: flex; align-items: center; gap: 14px; }
+.count { font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.bar { flex: 1; height: 8px; border-radius: 99px; background: var(--brand-soft); overflow: hidden; }
+.bar i { display: block; height: 100%; width: 0; background: var(--brand); border-radius: 99px; transition: width .4s ease; }
+.timer { display: flex; align-items: center; gap: 8px; font-weight: 700; font-variant-numeric: tabular-nums; min-width: 92px; justify-content: flex-end; }
+.timer .tbar { width: 60px; height: 8px; border-radius: 99px; background: var(--brand-soft); overflow: hidden; }
+.timer .tbar i { display: block; height: 100%; background: var(--good); border-radius: 99px; }
+.timer.low { color: var(--bad); }
+.timer.low .tbar i { background: var(--bad); }
+
+/* Board */
+.board { display: grid; grid-template-columns: minmax(220px, 300px) minmax(0, 1fr); gap: 28px; align-items: start; }
+.panel { background: var(--card); border: 1.5px solid var(--line); border-radius: 20px; padding: 22px; }
+
+/* SDLC track */
+.track { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; counter-reset: s; }
+.track li { counter-increment: s; display: flex; align-items: center; gap: 12px; padding: 9px 12px; border-radius: 12px; background: var(--tint); border: 1.5px solid transparent; font-weight: 600; transition: all .25s; }
+.track li::before { content: counter(s); width: 28px; height: 28px; flex: none; border-radius: 50%; display: grid; place-items: center; background: var(--card); color: var(--brand); font-weight: 800; }
+.track li.hit { border-color: var(--good); background: var(--good-bg); }
+.track li.hit::before { background: var(--good); color: #FFFFFF; }
+.cap { font-size: 14px; color: var(--muted); margin: 12px 2px 0; }
+
+/* Phone */
+.phone { width: 100%; max-width: 250px; margin-inline: auto; aspect-ratio: 9 / 17.5; background: var(--phone); border-radius: 34px; padding: 11px; box-shadow: 0 16px 34px rgba(0, 60, 120, .16); }
+.screen { height: 100%; border-radius: 25px; background: #FFFFFF; color: #17212E; overflow: hidden; display: flex; flex-direction: column; position: relative; font-size: 14px; }
+.sc-top { background: #0061B5; color: #FFFFFF; padding: 14px 14px 12px; }
+.sc-top b { font-size: 17px; font-family: var(--display); }
+.sc-top small { display: block; opacity: .85; font-size: 12px; }
+.sc-body { padding: 12px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+.sbox { border: 1.5px solid #B9CDE4; border-radius: 10px; padding: 8px 10px; display: flex; gap: 6px; align-items: center; }
+.sbox .caret { width: 2px; height: 16px; background: #0061B5; animation: blink 1s steps(2) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+.item { display: flex; justify-content: space-between; align-items: center; gap: 8px; border-radius: 10px; background: #F1F6FC; padding: 8px 10px; }
+.item b { display: block; font-size: 14px; }
+.item small { color: #5A6878; font-size: 12px; }
+.item .add { background: #0061B5; color: #FFFFFF; border-radius: 8px; padding: 2px 10px; font-weight: 700; font-size: 13px; }
+.keys { margin-top: auto; display: grid; grid-template-columns: repeat(10, 1fr); gap: 3px; }
+.keys span { background: #E3EAF3; border-radius: 4px; height: 22px; font-size: 11px; display: grid; place-items: center; }
+.toast { position: absolute; left: 12px; right: 12px; bottom: 14px; background: #0E8A5F; color: #FFFFFF; border-radius: 10px; padding: 9px 12px; font-weight: 700; text-align: center; }
+.toast.err { background: #CF3F35; }
+.row { display: flex; justify-content: space-between; }
+.total { border-top: 1.5px dashed #B9CDE4; padding-top: 8px; font-weight: 800; font-size: 16px; }
+.pay { margin-top: auto; background: #0061B5; color: #FFFFFF; border-radius: 10px; text-align: center; padding: 10px; font-weight: 700; }
+.tick { width: 70px; height: 70px; border-radius: 50%; background: #0E8A5F; color: #FFFFFF; display: grid; place-items: center; font-size: 38px; margin: 34px auto 6px; font-weight: 800; }
+
+/* Question */
+.qcard { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.qlabel { font-size: 14px; font-weight: 700; color: var(--brand); letter-spacing: .06em; text-transform: uppercase; }
+.scenario { font-family: var(--display); font-size: clamp(22px, 2.5vw, 30px); line-height: 1.22; font-weight: 700; margin: 0; text-wrap: balance; }
+.options { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; }
+.opt { text-align: left; background: var(--card); border: 2px solid var(--line); border-radius: 14px; padding: 12px 14px; display: flex; gap: 12px; align-items: center; font-weight: 700; font-size: 18px; transition: border-color .15s, background .15s, transform .1s; }
+.opt:hover:not(:disabled) { border-color: var(--brand); transform: translateY(-1px); }
+.opt .key { width: 28px; height: 28px; flex: none; border-radius: 8px; display: grid; place-items: center; background: var(--brand-soft); color: var(--brand); font-size: 15px; font-weight: 800; }
+.opt:disabled { cursor: default; opacity: .5; }
+.opt.right { border-color: var(--good); background: var(--good-bg); opacity: 1; }
+.opt.right .key { background: var(--good); color: #FFFFFF; }
+.opt.wrong { border-color: var(--bad); background: var(--bad-bg); opacity: 1; }
+.opt.wrong .key { background: var(--bad); color: #FFFFFF; }
+.feedback { border-radius: 14px; padding: 14px 18px; background: var(--tint); }
+.feedback.good { background: var(--good-bg); }
+.feedback.bad { background: var(--bad-bg); }
+.feedback strong { display: block; font-size: 19px; margin-bottom: 2px; }
+.feedback.good strong { color: var(--good); }
+.feedback.bad strong { color: var(--bad); }
+.actions { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.primary { background: var(--brand); color: #FFFFFF; border: 0; border-radius: 12px; padding: 12px 22px; font-weight: 700; font-size: 18px; }
+.secondary { background: var(--card); color: var(--brand); border: 2px solid var(--brand); border-radius: 12px; padding: 10px 20px; font-weight: 700; font-size: 17px; }
+.hint { color: var(--muted); font-size: 14px; }
+
+/* Start + results */
+.hero { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 28px; align-items: start; }
+.hero h2 { font-family: var(--display); font-size: clamp(30px, 4vw, 44px); line-height: 1.05; margin: 0 0 10px; text-wrap: balance; }
+.hero p { margin: 0 0 8px; color: var(--muted); font-size: 18px; max-width: 60ch; }
+.rules { margin: 14px 0 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+.rules li { display: flex; gap: 10px; align-items: baseline; }
+.rules li b { color: var(--brand); min-width: 92px; }
+.field { display: grid; gap: 6px; margin-bottom: 16px; }
+.field label { font-weight: 700; }
+.field input { border: 2px solid var(--line); border-radius: 12px; padding: 10px 14px; font-size: 18px; background: var(--card); width: 100%; }
+.choose { display: grid; gap: 10px; }
+.choice { text-align: left; background: var(--card); border: 2px solid var(--line); border-radius: 14px; padding: 12px 16px; }
+.choice b { display: block; font-size: 18px; }
+.choice span { color: var(--muted); font-size: 15px; }
+.choice[aria-pressed="true"] { border-color: var(--brand); background: var(--tint); }
+.big { font-family: var(--display); font-size: 72px; font-weight: 800; line-height: 1; color: var(--brand); font-variant-numeric: tabular-nums; }
+.rank { display: inline-block; background: var(--amber-bg); color: #8A5600; border-radius: 99px; padding: 4px 14px; font-weight: 700; margin-top: 8px; }
+.result-line { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.result-line input { flex: 1; min-width: 0; border: 2px solid var(--line); border-radius: 12px; padding: 10px 12px; background: var(--tint); font-size: 16px; }
+.review { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; max-height: 360px; overflow: auto; }
+.review li { display: flex; gap: 10px; padding: 8px 10px; border-radius: 10px; background: var(--tint); font-size: 15px; }
+.review li .mark { font-weight: 800; flex: none; width: 18px; }
+.review li.ok .mark { color: var(--good); }
+.review li.no .mark { color: var(--bad); }
+.review li span { min-width: 0; }
+
+@media (max-width: 860px) {
+  .board, .hero { grid-template-columns: 1fr; }
+  .phone { max-width: 210px; }
+}
+@media (max-width: 560px) {
+  .top h1 { font-size: 26px; }
+  .options { grid-template-columns: 1fr; }
+  .stat { min-width: 0; flex: 1; }
+  .big { font-size: 56px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <div class="eyebrow">Software Testing Fundamentals</div>
+      <h1>ShopKart Build Game</h1>
+    </div>
+    <div class="stats" id="stats" hidden>
+      <div class="stat player"><small>Player</small><b id="statName">Player</b></div>
+      <div class="stat"><small>Score</small><b id="statScore">0</b></div>
+      <div class="stat streak"><small>Streak</small><b id="statStreak">0</b></div>
+    </div>
+  </header>
+  <div class="progress" id="progress" hidden>
+    <span class="count" id="count"></span>
+    <div class="bar"><i id="barFill"></i></div>
+    <div class="timer" id="timer"><span id="timeLeft">20s</span><div class="tbar"><i id="timeFill"></i></div></div>
+  </div>
+  <main id="main"></main>
+</div>
+
+<script>
+const STAGES = ["Requirement", "Design", "Development", "Testing", "Deployment", "Maintenance"];
+const PARTS = ["Frontend", "Backend", "Database", "Internet"];
+const LETTERS = "ABCDEF";
+const SECONDS = 20;
+
+const R1 = [
+  { s: "The shop owner says: “My customers want to order groceries from home and pay online.”", a: "Requirement", why: "Understanding what the customer needs is the Requirement step. Nothing is designed or coded yet." },
+  { s: "The team agrees the app must work in both Malayalam and English.", a: "Requirement", why: "Language support is something the customer needs, so it is written down as a requirement before anyone builds it." },
+  { s: "A designer sketches five screens: Home, Search, Product, Cart and Checkout.", a: "Design", why: "Planning how the app looks and how screens connect is Design. It happens before the code is written." },
+  { s: "The team draws how an order moves from the cart to the payment page and into the database.", a: "Design", why: "Planning how the parts work together is also Design, just on the inside instead of the screens." },
+  { s: "Developers write the code for the “Add to Cart” button and the order system.", a: "Development", why: "Writing code is Development: the plan from the Design step becomes a working app." },
+  { s: "A tester types a wrong card number to check that the order does not go through.", a: "Testing", why: "Deliberately trying wrong inputs to see if the app handles them safely is Testing. This is the job you are training for." },
+  { s: "A tester notices the total shows ₹0 when the cart has 10 items, and reports a bug.", a: "Testing", why: "Finding a wrong result and reporting it to developers is Testing. The fix itself is done by developers." },
+  { s: "ShopKart is published on the Play Store and the website goes live for everyone.", a: "Deployment", why: "Releasing the software so real users can use it is Deployment." },
+  { s: "Users complain the app crashes when they search for “atta”. The team fixes it in an update.", a: "Maintenance", why: "Fixing problems after the app is live is Maintenance." },
+  { s: "Customers ask for a “Track my order” feature, so the team adds it in a new version.", a: "Maintenance", why: "Improving live software is Maintenance. A new feature request also starts the cycle again as a new requirement." }
+].map((q) => Object.assign(q, { round: 1 }));
+
+const R2 = [
+  { screen: "search", s: "You open ShopKart and see a search box with the keyboard ready. Which part shows you this?", a: "Frontend", why: "Everything you see and touch on the screen, like the search box and buttons, is the Frontend." },
+  { screen: "search", s: "You press search. Your word “milk” travels from your phone to ShopKart’s server.", a: "Internet", why: "The Internet is the network that carries your request from the phone to the server and brings the answer back." },
+  { screen: "results", s: "The list of all 2,000 products with their names and prices is kept here.", a: "Database", why: "Product details are stored in the Database so the app can find them any time." },
+  { screen: "results", s: "The server picks only the products with “milk” in the name and sorts them by price.", a: "Backend", why: "Deciding which products match and in what order is business logic, which runs in the Backend." },
+  { screen: "cart", s: "A green “Added to cart” message pops up on your screen.", a: "Frontend", why: "Showing a message to the user is the Frontend’s job." },
+  { screen: "cart", s: "You close the app and open ShopKart on your laptop later. Your cart items are still there.", a: "Database", why: "Your cart was saved in the Database, so any device you log in from can load it." },
+  { screen: "checkout", s: "Before payment, the server checks the milk is still in stock and adds the ₹30 delivery fee.", a: "Backend", why: "Checking stock and calculating the total are rules the Backend runs on the server." },
+  { screen: "offline", s: "Your phone loses network just as you tap Pay, and the app says it cannot reach the server.", a: "Internet", why: "The connection between your phone and the server broke, so the problem is the Internet link." },
+  { screen: "done", s: "The “Order placed!” screen appears with your order number.", a: "Frontend", why: "The backend sent the result back, and the Frontend shows it to you on screen." }
+].map((q) => Object.assign(q, { round: 2 }));
+
+const MODES = {
+  both: { label: "Full game", qs: () => R1.concat(R2) },
+  r1: { label: "Round 1 · Build it", qs: () => R1 },
+  r2: { label: "Round 2 · Behind the screen", qs: () => R2 }
+};
+
+let state = fresh();
+let tick = null;
+
+function fresh() {
+  return { phase: "start", name: "", mode: "both", i: 0, answered: null, score: 0, streak: 0, best: 0, correct: 0, log: [], deadline: 0, lastPoints: 0 };
+}
+
+const $ = (id) => document.getElementById(id);
+const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const questions = () => MODES[state.mode].qs();
+
+function phone(screen) {
+  const top = (sub) => `<div class="sc-top"><b>ShopKart</b><small>${sub}</small></div>`;
+  const keys = "QWERTYUIOPASDFGHJKL".split("").concat(["⌫"]).map((k) => `<span>${k}</span>`).join("");
+  const views = {
+    search: top("Groceries delivered in Kochi") + `<div class="sc-body"><div class="sbox">🔍 milk<span class="caret"></span></div><small style="color:#5A6878">Popular: matta rice, coconut oil, atta</small><div class="keys">${keys}</div></div>`,
+    results: top("12 results for “milk”") + `<div class="sc-body"><div class="sbox">🔍 milk</div>
+      <div class="item"><div><b>Toned milk 500 ml</b><small>₹26</small></div><span class="add">Add</span></div>
+      <div class="item"><div><b>Full cream milk 1 L</b><small>₹68</small></div><span class="add">Add</span></div>
+      <div class="item"><div><b>Milk peda 250 g</b><small>₹120</small></div><span class="add">Add</span></div></div>`,
+    cart: top("Your cart · 2 items") + `<div class="sc-body"><div class="item"><div><b>Toned milk 500 ml</b><small>Qty 1</small></div><b>₹26</b></div><div class="item"><div><b>Matta rice 5 kg</b><small>Qty 1</small></div><b>₹320</b></div></div><div class="toast">✓ Added to cart</div>`,
+    checkout: top("Checkout") + `<div class="sc-body"><div class="row"><span>Items (2)</span><span>₹346</span></div><div class="row"><span>Delivery fee</span><span>₹30</span></div><div class="row total"><span>Total</span><span>₹376</span></div><small style="color:#0E8A5F">✓ All items in stock</small><div class="pay">Pay ₹376</div></div>`,
+    offline: top("Checkout") + `<div class="sc-body"><div class="row"><span>Total</span><b>₹376</b></div><div class="pay" style="opacity:.5">Pay ₹376</div></div><div class="toast err">No connection. Can’t reach server.</div>`,
+    done: top("Order placed") + `<div class="sc-body" style="text-align:center"><div class="tick">✓</div><b style="font-size:18px">Order placed!</b><small style="color:#5A6878">Order #SK-48213 · Arriving by 6 pm</small></div>`
+  };
+  return `<div class="phone" aria-label="ShopKart app screen"><div class="screen">${views[screen]}</div></div><p class="cap" style="text-align:center">Phone → Internet → Server (Backend) → Database</p>`;
+}
+
+function track(answerShown, a) {
+  const hit = answerShown ? STAGES.indexOf(a) : -1;
+  return `<ol class="track" aria-label="SDLC steps">${STAGES.map((st, k) => `<li class="${k === hit ? "hit" : ""}">${st}</li>`).join("")}</ol><p class="cap">Building ShopKart, a grocery app for Kochi.</p>`;
+}
+
+function rankFor(pct) {
+  if (pct >= 0.9) return "Senior Test Engineer";
+  if (pct >= 0.7) return "QA Analyst";
+  if (pct >= 0.5) return "Junior Tester";
+  return "Trainee Tester";
+}
+
+/* ---------- Screens ---------- */
+function renderStart() {
+  $("stats").hidden = true; $("progress").hidden = true;
+  const modeBtn = (k, title, sub) => `<button type="button" class="choice" data-mode="${k}" aria-pressed="${state.mode === k}"><b>${title}</b><span>${sub}</span></button>`;
+  $("main").innerHTML = `<div class="hero">
+    <div class="panel">
+      <h2>Help build ShopKart, a grocery app for Kochi</h2>
+      <p>You’ll see what happens while the app is built and used. Pick the right answer before the timer runs out.</p>
+      <ul class="rules">
+        <li><b>Correct</b><span>10 points, plus up to 10 bonus points for answering fast</span></li>
+        <li><b>Streak</b><span>3 right answers in a row: +5 extra on each one after</span></li>
+        <li><b>Time</b><span>${SECONDS} seconds per question</span></li>
+      </ul>
+    </div>
+    <form class="panel" id="startForm" novalidate>
+      <div class="field"><label for="playerName">Your name</label><input id="playerName" maxlength="24" autocomplete="off" placeholder="e.g. Ananya" value="${esc(state.name)}"></div>
+      <div class="choose" role="group" aria-label="Choose what to play">
+        ${modeBtn("both", "Full game", "19 questions · SDLC and behind the screen")}
+        ${modeBtn("r1", "Round 1 · Build it", "10 questions · Which SDLC step is this?")}
+        ${modeBtn("r2", "Round 2 · Behind the screen", "9 questions · Frontend, backend, database or internet?")}
+      </div>
+      <div class="actions" style="margin-top:16px"><button class="primary" type="submit" id="startBtn">Start game</button></div>
+    </form>
+  </div>`;
+  document.querySelectorAll("[data-mode]").forEach((b) => (b.onclick = (e) => { e.preventDefault(); state.mode = b.dataset.mode; state.name = $("playerName").value; renderStart(); }));
+  $("startForm").onsubmit = (e) => {
+    e.preventDefault();
+    state.name = $("playerName").value.trim() || "Player";
+    Object.assign(state, { phase: "play", i: 0, answered: null, score: 0, streak: 0, best: 0, correct: 0, log: [] });
+    beginQuestion();
+  };
+}
+
+function beginQuestion() {
+  state.answered = null;
+  state.deadline = Date.now() + SECONDS * 1000;
+  render();
+  clearInterval(tick);
+  tick = setInterval(updateTimer, 200);
+}
+
+function updateTimer() {
+  if (state.phase !== "play" || state.answered !== null) { clearInterval(tick); return; }
+  const left = Math.max(0, state.deadline - Date.now());
+  const secs = Math.ceil(left / 1000);
+  $("timeLeft").textContent = secs + "s";
+  $("timeFill").style.width = (left / (SECONDS * 1000)) * 100 + "%";
+  $("timer").classList.toggle("low", secs <= 5);
+  if (left <= 0) answer(null);
+}
+
+function renderPlay() {
+  const qs = questions(), q = qs[state.i], total = qs.length, ans = state.answered;
+  $("stats").hidden = false; $("progress").hidden = false;
+  $("statName").textContent = state.name;
+  $("statScore").textContent = state.score;
+  $("statStreak").textContent = state.streak;
+  $("count").textContent = `Question ${state.i + 1} of ${total}`;
+  $("barFill").style.width = `${(state.i / total) * 100}%`;
+  $("timer").hidden = ans !== null;
+
+  const opts = q.round === 1 ? STAGES : PARTS;
+  const ask = q.round === 1 ? "Round 1 · Which SDLC step is happening?" : "Round 2 · Which part does this work?";
+  const buttons = opts.map((o, k) => {
+    let cls = "opt";
+    if (ans !== null) { if (o === q.a) cls += " right"; else if (o === ans) cls += " wrong"; }
+    return `<button class="${cls}" data-opt="${esc(o)}" ${ans !== null ? "disabled" : ""}><span class="key">${LETTERS[k]}</span>${esc(o)}</button>`;
+  }).join("");
+
+  let fb = "";
+  if (ans !== null) {
+    const ok = ans === q.a;
+    const head = ok ? `Correct! +${state.lastPoints} points` : ans === "__timeout" ? `Time’s up. It’s ${esc(q.a)}.` : `Not quite. It’s ${esc(q.a)}.`;
+    fb = `<div class="feedback ${ok ? "good" : "bad"}"><strong>${head}</strong>${esc(q.why)}</div>
+      <div class="actions"><button class="primary" id="next">${state.i + 1 < total ? "Next question" : "See my score"}</button><span class="hint">or press Enter</span></div>`;
+  }
+
+  $("main").innerHTML = `<div class="board">
+      <div class="panel">${q.round === 1 ? track(ans !== null, q.a) : phone(q.screen)}</div>
+      <section class="qcard" aria-live="polite">
+        <span class="qlabel">${ask}</span>
+        <p class="scenario">${esc(q.s)}</p>
+        <div class="options">${buttons}</div>
+        ${fb}
+        ${ans === null ? `<span class="hint">Click an answer or press ${LETTERS.slice(0, opts.length).split("").join(", ")}</span>` : ""}
+      </section>
+    </div>`;
+
+  document.querySelectorAll("[data-opt]").forEach((b) => (b.onclick = () => answer(b.dataset.opt)));
+  if ($("next")) { $("next").onclick = next; $("next").focus({ preventScroll: true }); }
+  if (ans === null) updateTimer();
+}
+
+function renderResults() {
+  clearInterval(tick);
+  $("stats").hidden = false; $("progress").hidden = false; $("timer").hidden = true;
+  $("statScore").textContent = state.score; $("statStreak").textContent = state.streak;
+  const total = questions().length;
+  $("count").textContent = `${MODES[state.mode].label} complete`;
+  $("barFill").style.width = "100%";
+  const pct = state.correct / total;
+  const line = `ShopKart Build Game · ${state.name}: ${state.score} points, ${state.correct}/${total} correct, best streak ${state.best}`;
+  const review = state.log.map((l, k) => `<li class="${l.ok ? "ok" : "no"}"><span class="mark">${l.ok ? "✓" : "✗"}</span><span>${k + 1}. ${esc(l.a)}${l.ok ? "" : ` (you said ${esc(l.you)})`}</span></li>`).join("");
+  $("main").innerHTML = `<div class="hero">
+    <div class="panel">
+      <span class="qlabel">Your score, ${esc(state.name)}</span>
+      <div class="big" style="margin-top:8px">${state.score}</div>
+      <p style="margin-top:8px">${state.correct} of ${total} correct · best streak ${state.best}</p>
+      <span class="rank">${rankFor(pct)}</span>
+      <p style="margin-top:20px;color:var(--ink);font-weight:700">Post your result in the Google Meet chat</p>
+      <div class="result-line"><input id="resultText" readonly value="${esc(line)}" aria-label="Your result"><button class="primary" id="copyBtn">Copy</button></div>
+      <p class="hint" id="copyMsg" style="margin-top:6px"></p>
+      <div class="actions" style="margin-top:18px"><button class="secondary" id="again">Play again</button></div>
+    </div>
+    <div class="panel">
+      <span class="qlabel">Answer review</span>
+      <ul class="review" style="margin-top:12px">${review}</ul>
+    </div>
+  </div>`;
+  $("copyBtn").onclick = () => {
+    const box = $("resultText");
+    const done = () => ($("copyMsg").textContent = "Copied. Paste it in the Meet chat.");
+    const fallback = () => { box.focus(); box.select(); $("copyMsg").textContent = "Text selected. Press Ctrl+C (or ⌘C) to copy."; };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(line).then(done, fallback); else fallback();
+  };
+  $("again").onclick = () => { const n = state.name, m = state.mode; state = fresh(); state.name = n; state.mode = m; render(); };
+}
+
+function render() {
+  if (state.phase === "start") renderStart();
+  else if (state.phase === "play") renderPlay();
+  else renderResults();
+}
+
+function answer(opt) {
+  if (state.phase !== "play" || state.answered !== null) return;
+  clearInterval(tick);
+  const q = questions()[state.i];
+  const ok = opt === q.a;
+  let pts = 0;
+  if (ok) {
+    const left = Math.max(0, state.deadline - Date.now());
+    pts = 10 + Math.round((left / (SECONDS * 1000)) * 10);
+    state.streak += 1;
+    if (state.streak > 3) pts += 5;
+    state.correct += 1;
+    state.best = Math.max(state.best, state.streak);
+  } else {
+    state.streak = 0;
+  }
+  state.score += pts;
+  state.lastPoints = pts;
+  state.answered = opt === null ? "__timeout" : opt;
+  state.log.push({ ok, a: q.a, you: opt === null ? "no answer" : opt });
+  render();
+}
+
+function next() {
+  if (state.phase !== "play" || state.answered === null) return;
+  if (state.i + 1 < questions().length) { state.i += 1; beginQuestion(); }
+  else { state.phase = "done"; render(); }
+}
+
+document.addEventListener("keydown", (e) => {
+  if (state.phase !== "play") return;
+  if (e.target && e.target.tagName === "INPUT") return;
+  const q = questions()[state.i];
+  const opts = q.round === 1 ? STAGES : PARTS;
+  const k = LETTERS.indexOf(e.key.toUpperCase());
+  if (state.answered === null && k >= 0 && k < opts.length && e.key.length === 1) answer(opts[k]);
+  else if ((e.key === "Enter" || e.key === "ArrowRight") && state.answered !== null) { e.preventDefault(); next(); }
+});
+
+function start(saved) {
+  if (saved && saved.phase) state = Object.assign(fresh(), saved);
+  if (state.phase === "play" && state.answered === null) beginQuestion(); else render();
+}
+window.claude?.hot?.snapshot?.(() => state);
+window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+</script>
+
+</body>
+</html>
